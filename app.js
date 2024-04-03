@@ -30,33 +30,33 @@ const getPokemonsType = async pokeApiResults => {
     return pokemons.map(fulfilled => fulfilled.types.map(info => info.type.name))
   }
 
-// Fn 03
+// Fn 03 IDs dos Pokemons
 const getPokemonsIds = (pokeApiResults) => pokeApiResults.map(({ url }) => {
     const urlArray = url.split('/')
     return urlArray.at(urlArray.length - 2)
   })
 
-const getPokemonsImgs = () => {
-  return 
+// Fn 04 Imgs dos pokemons
+const getPokemonsImgs = async (ids) => {
+  const promises = ids.map((id) => { return fetch(`./assets/img/${id}.png`) }) 
+  const responses = await Promise.allSettled(promises)
+  const fulfilled = responses.filter((response) => { return response.status === 'fulfilled' })
+  return fulfilled.map((response) => { return response.value.url })
 }
 
 const handlePageloader = async () => {
-try {
-  const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=15&offset=0')
+  try {
+    const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=15&offset=0')
 
-  if(!response.ok) {
-    throw Error('Não foi possível obter as informações!')
-  }
-
-  const { results : pokeApiResults } =  await response.json()
-  const types = await getPokemonsType(pokeApiResults)    
-  const ids = getPokemonsIds(pokeApiResults)
-  const promises = ids.map(id => fetch(`/assets/img/${id}.png`))
-  const responses = await Promise.allSettled(promises)
-  const fulfilled = responses.filter(response => response.status === 'fulfilled')
-  const imgs = fulfilled.map((response) => {return response.value.url})
-  
-  console.log('Log dos ids do projeto',ids, types, promises, imgs);    
+    if(!response.ok) {
+      throw new Error('Não foi possível obter as informações!')
+    }
+    const { results : pokeApiResults } =  await response.json()
+    const types = await getPokemonsType(pokeApiResults)    
+    const ids = getPokemonsIds(pokeApiResults)
+    const imgs = await getPokemonsImgs(ids)
+    
+    console.log(ids, types, imgs);    
 
   } catch (error) {
     console.log('algo deu errado!');
