@@ -20,11 +20,15 @@ const getTypeColor = type => {
   }[type] || normal
 }
 
+const getOnlyFulfilled = async ({ arr, func }) => {
+  const promises = arr.map(func)
+  const responses = await Promise.allSettled(promises)
+  return responses.filter(response => response.status === 'fulfilled') 
+}
+
 //Fn 02 Types to Pokemons
 const getPokemonsType = async pokeApiResults => {
-    const promises = pokeApiResults.map(result => fetch(result.url))
-    const responses = await Promise.allSettled(promises)
-    const fulfilled = responses.filter(response => response.status === 'fulfilled')
+    const fulfilled = await getOnlyFulfilled({ arr: pokeApiResults, func: result => fetch(result.url) })
     const pokePromises = fulfilled.map(url => url.value.json())
     const pokemons = await Promise.all(pokePromises)
     return pokemons.map(fulfilled => fulfilled.types.map(info => info.type.name))
@@ -33,16 +37,18 @@ const getPokemonsType = async pokeApiResults => {
 // Fn 03 IDs dos Pokemons
 const getPokemonsIds = (pokeApiResults) => pokeApiResults.map(({ url }) => {
     const urlArray = url.split('/')
-    return urlArray.at(urlArray.length - 2)
+
+    return urlArray.at(urlArray.length - 2) 
   })
+
 
 // Fn 04 Imgs dos pokemons
 const getPokemonsImgs = async (ids) => {
-  const promises = ids.map((id) => { return fetch(`./assets/img/${id}.png`) }) 
-  const responses = await Promise.allSettled(promises)
-  const fulfilled = responses.filter((response) => { return response.status === 'fulfilled' })
-  return fulfilled.map((response) => { return response.value.url })
+  const fulfilled = await getOnlyFulfilled({ arr: ids, func: id => fetch(`./assets/img/${id}.png`) })
+  return fulfilled.map((response) => response.value.url )
 }
+ 
+
 
 const handlePageloader = async () => {
   try {
@@ -55,8 +61,16 @@ const handlePageloader = async () => {
     const types = await getPokemonsType(pokeApiResults)    
     const ids = getPokemonsIds(pokeApiResults)
     const imgs = await getPokemonsImgs(ids)
-    
-    console.log(ids, types, imgs);    
+    const pokemons = ids.map((id, i) => {
+      return ({
+        id: id, 
+        name: pokeApiResults[i].name,
+        types: types[i],
+        imgUrl: imgs[i] 
+      })
+    })
+
+    console.log('Pegando os Pokemos', pokemons);    
 
   } catch (error) {
     console.log('algo deu errado!');
